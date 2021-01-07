@@ -13,6 +13,18 @@
     </head>
     <body>
         <canvas id="monitor"></canvas>
+        <form id="source-selector-form">
+            <p>音声ソース</p>
+            <div>
+                <input type="radio" id="source-mic" name="source" value="mic">
+                <label for="mic">マイク</label>
+                <input type="radio" id="source-file" name="source" value="file" checked>
+                <label for="file">音声ファイル</label>
+            </div>
+            <div>
+                <button type="submit">選択</button>
+            </div>
+        </form>
         <input id="audio-file" accept="audio/*" type="file"/>
         <audio id="audio" controls></audio>
         <script src="dist/main.js"></script>

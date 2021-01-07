@@ -3,6 +3,7 @@ const FFT_SIZE = 2048
 
 const queue: Uint8Array[] = new Array(SAMPLES_COUNT)
 
+const sourceSelector = <HTMLFormElement> document.getElementById("source-selector-form")!!
 const canvas = <HTMLCanvasElement> document.getElementById("monitor")!!
 const canvasContext = canvas.getContext("2d")!!
 
@@ -58,6 +59,91 @@ const drawSpectrogram = () => {
     })
 }
 
+let requestID: number | null = null
+sourceSelector.addEventListener("submit", ev => {
+    if (requestID) {
+        cancelAnimationFrame(requestID)
+        requestID = null
+
+        canvasContext.fillStyle = "#FFFFFF"
+        canvasContext.fillRect(0, 0, canvas.width, canvas.height)
+    }
+
+    const data = new FormData(sourceSelector)
+    const entry = data.get("source")
+
+    if (entry == "mic") {
+        navigator
+            .mediaDevices
+            .getUserMedia({ audio: true, video: false })
+            .then(stream => {
+                console.log("Access granted")
+        
+                const audioContext = new AudioContext();
+                const source = audioContext.createMediaStreamSource(stream)
+                const analyser = audioContext.createAnalyser()
+        
+                source.connect(analyser)
+                analyser.fftSize =  FFT_SIZE
+        
+                const draw = () => {
+                    const buffer = new Uint8Array(analyser.frequencyBinCount)
+                    analyser.getByteFrequencyData(buffer)
+        
+                    queue.shift()
+                    queue.push(buffer)
+        
+                    drawSpectrogram()
+        
+                    requestID = requestAnimationFrame(draw)
+                }
+        
+                requestID = requestAnimationFrame(draw)
+                console.log("Start")
+            })
+    }
+    else if (entry == "file") {
+        const audioFile = <HTMLInputElement>document.getElementById("audio-file")!!
+        const audio = <HTMLAudioElement>document.getElementById("audio")!!
+        audioFile.onchange = () => {
+            audio.pause()
+        
+            const files = audioFile.files
+            if (files) {
+                const file = URL.createObjectURL(files[0])
+                audio.src = file
+        
+                const audioContext = new AudioContext()
+                const source = audioContext.createMediaElementSource(audio)
+                const analyser = audioContext.createAnalyser()
+        
+                source.connect(analyser)
+                analyser.connect(audioContext.destination)
+                analyser.fftSize = FFT_SIZE
+        
+                const draw = () => {
+                    const buffer = new Uint8Array(analyser.frequencyBinCount)
+                    analyser.getByteFrequencyData(buffer)
+        
+                    queue.shift()
+                    queue.push(buffer)
+        
+                    drawSpectrogram()
+        
+                    requestID = requestAnimationFrame(draw)
+                }
+        
+                requestID = requestAnimationFrame(draw)
+                console.log("Start")
+        
+                audio.play()
+            }
+        }
+    }
+    
+    ev.preventDefault()
+})
+
 /*
 navigator
     .mediaDevices
@@ -89,6 +175,7 @@ navigator
     })
 */
 
+/*
 const audioFile = <HTMLInputElement>document.getElementById("audio-file")!!
 const audio = <HTMLAudioElement>document.getElementById("audio")!!
 audioFile.onchange = () => {
@@ -125,3 +212,4 @@ audioFile.onchange = () => {
         audio.play()
     }
 }
+*/
